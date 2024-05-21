@@ -1,11 +1,12 @@
+import os
 import requests
 from bs4 import BeautifulSoup
-import telegram
+from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
 
-# Replace 'chat_id' and 'bot_token' with your Telegram group ID and bot token
-CHAT_ID = '1002106850029'
-BOT_TOKEN = '6735157620:AAH18RSB6bmzmudTxxF4bFRB6AzTZs4cdBU'
+# Get environment variables
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+CHAT_ID = os.getenv('CHAT_ID')
 
 # Function to scrape website for new posts
 def scrape_website():
@@ -30,7 +31,7 @@ def scrape_website():
                 seen_posts.add(url)
         
         # Send new posts to Telegram
-        bot = telegram.Bot(token=BOT_TOKEN)
+        bot = Bot(token=BOT_TOKEN)
         for post in new_posts:
             message = f"New post: {post['title']}\n{post['url']}"
             bot.send_message(chat_id=CHAT_ID, text=message)

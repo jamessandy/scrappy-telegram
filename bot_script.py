@@ -1,50 +1,82 @@
-import os
 import requests
 from bs4 import BeautifulSoup
+import telegram
 from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
+import asyncio
+import html
 
-# Get environment variables
-BOT_TOKEN = os.getenv('BOT_TOKEN')
-CHAT_ID = os.getenv('CHAT_ID')
+# Environment variables
+BOT_TOKEN = '6735157620:AAH18RSB6bmzmudTxxF4bFRB6AzTZs4cdBU'
+CHAT_ID = '-1002106850029'
 
-# Function to scrape website for new posts
-def scrape_website():
-    url = 'https://newlistedcoins.com/latest'
+seen_posts = set()
+
+async def scrape_website(url, box_class):
     try:
         response = requests.get(url)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
 
-        # Extract post information here
-        posts = soup.find_all('div', class_='post')  # Adjust selector based on actual HTML structure
-        
+        # Extract post information
+        posts = soup.find_all('div', class_=box_class)
         new_posts = []
         for post in posts:
             title = post.find('h2').text.strip()
-            url = post.find('a')['href']
-            # Implement logic to check if the post is new
-            # For example, keep a set of seen URLs
-            
-            if url not in seen_posts:
-                new_posts.append({'title': title, 'url': url})
-                seen_posts.add(url)
-        
+            post_url = post.find('a')['href']
+            image_url = post.find('img')['src']
+
+            # Check if the post is new
+            if post_url not in seen_posts:
+                new_posts.append({'title': title, 'url': post_url, 'image': image_url})
+                seen_posts.add(post_url)
+
         # Send new posts to Telegram
         bot = Bot(token=BOT_TOKEN)
         for post in new_posts:
-            message = f"New post: {post['title']}\n{post['url']}"
-            bot.send_message(chat_id=CHAT_ID, text=message)
+            escaped_title = html.escape(post['title'])
+            escaped_url = html.escape(post['url'])
+            escaped_image = html.escape(post['image'])
+
+            message = f"""
+- {escaped_image}
+- New Airdrop: {escaped_title}
+- Action: Claim Rewards
+
+Airdrop Link: [Click here]({escaped_url})
+
+Complete all tasks of the airdrop
+
+Done ✅ Done ✅ Done ✅ Done ✅
+
+Note: We are airdrop hunters and only participate in free legit airdrops.
+
+Follow us on:
+- [Facebook](https://www.facebook.com/profile.php?id=61558793561598&mibextid=LQQJ4d)
+- [Twitter](https://x.com/newlistedcoins?s=21)
+- [Instagram](https://www.instagram.com/newlistedcoins?igsh=ajZsNzIxYmcwMGJk)
+"""
+            try:
+                await bot.send_message(chat_id=CHAT_ID, text=message, parse_mode='Markdown')
+                print(f"Sent message: {message}")
+            except telegram.error.TelegramError as e:
+                print(f"Error sending message: {e}")
 
     except requests.RequestException as e:
         print(f"Error fetching website: {e}")
-    except telegram.error.TelegramError as e:
-        print(f"Error sending message: {e}")
 
-# Set up scheduler to run scrape_website() every hour
+# Scheduler setup
 scheduler = BackgroundScheduler()
-scheduler.add_job(scrape_website, 'interval', hours=1)
+scheduler.add_job(lambda: asyncio.run(scrape_website('https://newlistedcoins.com/latest', 'latest-box')), 'interval', hours=1)
+scheduler.add_job(lambda: asyncio.run(scrape_website('https://newlistedcoins.com/hot', 'hot-box')), 'interval', hours=1)
+scheduler.add_job(lambda: asyncio.run(scrape_website('https://newlistedcoins.com/potential', 'potential-box')), 'interval', hours=1)
 scheduler.start()
+print("Scheduler started.")
+
+# Direct calls for immediate testing
+asyncio.run(scrape_website('https://newlistedcoins.com/latest', 'latest-box'))
+asyncio.run(scrape_website('https://newlistedcoins.com/hot', 'hot-box'))
+asyncio.run(scrape_website('https://newlistedcoins.com/potential', 'potential-box'))
 
 # Keep track of seen posts to avoid duplicates
 seen_posts = set()
@@ -55,3 +87,4 @@ try:
         pass
 except (KeyboardInterrupt, SystemExit):
     scheduler.shutdown()
+    print("Scheduler shutdown.")

@@ -10,9 +10,11 @@ import html
 BOT_TOKEN = '6735157620:AAH18RSB6bmzmudTxxF4bFRB6AzTZs4cdBU'
 CHAT_ID = '-1002106850029'
 
+# Maintain a global seen_posts set
 seen_posts = set()
 
 async def scrape_website(url, box_class):
+    global seen_posts  # Use the global seen_posts set
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -77,9 +79,6 @@ print("Scheduler started.")
 asyncio.run(scrape_website('https://newlistedcoins.com/latest', 'latest-box'))
 asyncio.run(scrape_website('https://newlistedcoins.com/hot', 'hot-box'))
 asyncio.run(scrape_website('https://newlistedcoins.com/potential', 'potential-box'))
-
-# Keep track of seen posts to avoid duplicates
-seen_posts = set()
 
 # Keep the script running
 try:

@@ -5,13 +5,20 @@ from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
 import asyncio
 import html
+import os
+import pickle
 
 # Environment variables
 BOT_TOKEN = '6735157620:AAH18RSB6bmzmudTxxF4bFRB6AzTZs4cdBU'
 CHAT_ID = '-1002106850029'
+SEEN_POSTS_FILE = 'seen_posts.pkl'
 
-# Maintain a global seen_posts set
-seen_posts = set()
+# Load seen posts from a file
+if os.path.exists(SEEN_POSTS_FILE):
+    with open(SEEN_POSTS_FILE, 'rb') as f:
+        seen_posts = pickle.load(f)
+else:
+    seen_posts = set()
 
 async def scrape_website(url, box_class):
     global seen_posts  # Use the global seen_posts set
@@ -63,6 +70,10 @@ Follow us on:
                 print(f"Sent message: {message}")
             except telegram.error.TelegramError as e:
                 print(f"Error sending message: {e}")
+
+        # Save the updated seen_posts set to a file
+        with open(SEEN_POSTS_FILE, 'wb') as f:
+            pickle.dump(seen_posts, f)
 
     except requests.RequestException as e:
         print(f"Error fetching website: {e}")
